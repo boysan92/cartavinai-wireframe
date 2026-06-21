@@ -770,3 +770,336 @@ input {
   }
   .table-row > span, .table-row > strong { display: block !important; }
 }
+
+/* ===== Scansiona menù ===== */
+.scan-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.scan-step {
+  flex: 1;
+  min-width: 150px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scan-step.done {
+  color: var(--green);
+  border-color: var(--green-soft);
+  background: var(--green-soft);
+}
+
+.scan-step.active {
+  color: var(--blue);
+  border-color: var(--blue-soft);
+  background: var(--blue-soft);
+}
+
+.scan-drop {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 40px 20px;
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.scan-drop-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.scan-drop strong { font-size: 16px; }
+
+.scan-drop > p {
+  margin: 0;
+  color: var(--muted-light);
+  font-size: 13px;
+}
+
+.scan-drop-actions {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-weight: 600;
+  padding: 6px;
+}
+
+.link-button:hover { text-decoration: underline; }
+
+.scan-hint {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.scan-cols { grid-template-columns: 1.5fr 110px 1.6fr 100px; }
+
+.scan-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--blue-soft);
+}
+
+.scan-cta span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Wizard piatto-per-piatto */
+.wizard-card { padding: 0; overflow: hidden; }
+
+.wizard-progress {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.wizard-progress-text {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.wizard-progress-text strong { font-size: 16px; }
+
+.wizard-progress-text span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.wizard-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.wizard-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--blue);
+  transition: width 0.3s ease;
+}
+
+.wizard-body { padding: 20px; }
+
+.wizard-headline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.wizard-title-input {
+  height: 48px;
+  width: 100%;
+  font-size: 20px;
+  font-weight: 650;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+}
+
+.wizard-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.wizard-field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.wizard-field.wide { grid-column: span 2; }
+
+.wizard-field > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ai-badge {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.wizard-field select {
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--text);
+}
+
+.chip-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  align-content: flex-start;
+}
+
+.edit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.edit-chip button {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(95, 99, 104, 0.14);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.edit-chip button:hover {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.chip-add input {
+  height: 30px;
+  width: 130px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 13px;
+  background: var(--surface-soft);
+}
+
+.profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.profile-chip:hover { background: var(--surface-soft); }
+
+.profile-chip.on {
+  background: var(--blue-soft);
+  border-color: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.wizard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-light);
+  background: var(--surface-soft);
+}
+
+.wizard-actions-right {
+  display: flex;
+  gap: 8px;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.done-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.done-stat {
+  text-align: center;
+  padding: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.done-stat strong {
+  display: block;
+  font-size: 28px;
+  color: var(--text);
+}
+
+.done-stat span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .wizard-fields { grid-template-columns: 1fr; }
+  .wizard-field.wide { grid-column: span 1; }
+  .scan-cta { flex-direction: column; align-items: stretch; }
+  .done-summary { grid-template-columns: 1fr; }
+}

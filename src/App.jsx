@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 const views = [
   { id: 'home', label: 'Dashboard' },
   { id: 'restaurant', label: 'Locale' },
+  { id: 'scan', label: 'Scansiona menù' },
   { id: 'menu', label: 'Menù' },
   { id: 'wines', label: 'Carta vini' },
   { id: 'pairings', label: 'Abbinamenti' },
@@ -59,12 +60,78 @@ const glassPairings = [
   { dish: 'Squacquerone, rucola e piadina', wine: 'Albana Secco Romagna DOCG', note: 'calice bianco locale' }
 ];
 
+// Dati simulati del riconoscimento AI del menù scansionato
+const scanDishes = [
+  {
+    name: 'Alici marinate',
+    category: 'Antipasti',
+    confidence: 94,
+    ingredients: ['alici', 'limone', 'aglio', 'prezzemolo', 'olio EVO'],
+    sauce: 'marinatura agrumata',
+    cooking: 'Crudo / marinato',
+    profile: ['sapido', 'acido', 'agrumato']
+  },
+  {
+    name: 'Passatelli asciutti con vongole',
+    category: 'Primi',
+    confidence: 88,
+    ingredients: ['passatelli', 'vongole', 'aglio', 'prezzemolo', 'vino bianco'],
+    sauce: 'in bianco',
+    cooking: 'Saltato in padella',
+    profile: ['sapido', 'cremoso', 'iodato']
+  },
+  {
+    name: 'Branzino al forno',
+    category: 'Secondi',
+    confidence: 91,
+    ingredients: ['branzino', 'patate', 'rosmarino', 'olio EVO', 'limone'],
+    sauce: 'olio e erbe',
+    cooking: 'Al forno',
+    profile: ['delicato', 'erbaceo']
+  },
+  {
+    name: 'Tagliatelle al ragù',
+    category: 'Primi',
+    confidence: 78,
+    ingredients: ['tagliatelle', 'manzo', 'maiale', 'pomodoro', 'soffritto'],
+    sauce: 'ragù di carne',
+    cooking: 'Stufato',
+    profile: ['strutturato', 'umami', 'saporito']
+  },
+  {
+    name: 'Tenerina al cioccolato',
+    category: 'Dolci',
+    confidence: 69,
+    ingredients: ['cioccolato fondente', 'burro', 'uova', 'zucchero'],
+    sauce: '—',
+    cooking: 'Al forno',
+    profile: ['dolce', 'amaro', 'intenso']
+  }
+];
+
+const categories = ['Antipasti', 'Primi', 'Secondi', 'Contorni', 'Dolci'];
+const cookingMethods = ['Crudo / marinato', 'Saltato in padella', 'Al forno', 'Fritto', 'Bollito', 'Stufato', 'Alla griglia'];
+const profileVocab = [
+  'sapido', 'grasso', 'acido', 'dolce', 'amaro', 'tannico', 'speziato', 'delicato',
+  'cremoso', 'umami', 'iodato', 'erbaceo', 'agrumato', 'intenso', 'strutturato', 'saporito', 'aromatico'
+];
+
+function confidenceTone(value) {
+  if (value >= 85) return 'green';
+  if (value >= 75) return 'blue';
+  return 'amber';
+}
+
 function IconButton({ children }) {
   return <button className="icon-button" type="button">{children}</button>;
 }
 
-function Button({ children, variant = 'primary' }) {
-  return <button className={`button ${variant}`} type="button">{children}</button>;
+function Button({ children, variant = 'primary', onClick, disabled = false, type = 'button' }) {
+  return (
+    <button className={`button ${variant}`} type={type} onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
 }
 
 function Chip({ children, tone = 'default' }) {
@@ -160,7 +227,7 @@ function AppShell({ active, setActive, children }) {
             <div>
 
               <h1>{activeView?.label}</h1>
-              
+
             </div>
           </div>
 
@@ -194,9 +261,9 @@ function HomeView({ setActive }) {
         </div>
       </Card>
 
-      
 
-      
+
+
     </div>
   );
 }
@@ -226,13 +293,279 @@ function RestaurantView() {
   );
 }
 
+function ScanView({ setActive }) {
+  const [stage, setStage] = useState('upload'); // upload | list | review | done
+  const [idx, setIdx] = useState(0);
+  const [items, setItems] = useState(() =>
+    scanDishes.map((d) => ({ ...d, note: '', ingredients: [...d.ingredients], profile: [...d.profile] }))
+  );
+  const [statuses, setStatuses] = useState(() => scanDishes.map(() => null)); // null | confirmed | skipped
+  const [newIng, setNewIng] = useState('');
+
+  const total = items.length;
+  const current = items[idx];
+  const confirmedCount = statuses.filter((s) => s === 'confirmed').length;
+  const skippedCount = statuses.filter((s) => s === 'skipped').length;
+  const toReview = items.filter((d) => d.confidence < 80).length;
+
+  const stageOrder = ['upload', 'list', 'review', 'done'];
+  const stageLabels = {
+    upload: '1 · Acquisizione',
+    list: '2 · Riconoscimento',
+    review: '3 · Revisione piatto',
+    done: '4 · Riepilogo'
+  };
+
+  function patchCurrent(patch) {
+    setItems((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+  }
+  function removeIngredient(ing) {
+    patchCurrent({ ingredients: current.ingredients.filter((x) => x !== ing) });
+  }
+  function addIngredient() {
+    const value = newIng.trim();
+    if (value && !current.ingredients.includes(value)) {
+      patchCurrent({ ingredients: [...current.ingredients, value] });
+    }
+    setNewIng('');
+  }
+  function toggleProfile(tag) {
+    const has = current.profile.includes(tag);
+    patchCurrent({ profile: has ? current.profile.filter((x) => x !== tag) : [...current.profile, tag] });
+  }
+  function setStatusAt(i, value) {
+    setStatuses((prev) => prev.map((s, j) => (j === i ? value : s)));
+  }
+  function confirmAndNext() {
+    setStatusAt(idx, 'confirmed');
+    if (idx < total - 1) setIdx(idx + 1);
+    else setStage('done');
+  }
+  function skip() {
+    setStatusAt(idx, 'skipped');
+    if (idx < total - 1) setIdx(idx + 1);
+    else setStage('done');
+  }
+
+  const steps = (
+    <div className="scan-steps">
+      {stageOrder.map((s) => {
+        const isActive = s === stage;
+        const isDone = stageOrder.indexOf(s) < stageOrder.indexOf(stage);
+        return (
+          <div key={s} className={`scan-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}>
+            {stageLabels[s]}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  let body = null;
+
+  if (stage === 'upload') {
+    body = (
+      <div className="page-grid">
+        <Card
+          title="Scansiona il menù"
+          subtitle="Carica una foto o un PDF del menù cartaceo: l'AI riconosce i piatti e prepara una scheda da rivedere per ciascuno."
+          className="span-3"
+        >
+          <div className="scan-drop">
+            <div className="scan-drop-icon">⤓</div>
+            <strong>Trascina qui una foto o un PDF del menù</strong>
+            <p>oppure</p>
+            <div className="scan-drop-actions">
+              <Button variant="secondary">Scatta foto</Button>
+              <Button variant="secondary">Carica PDF</Button>
+            </div>
+            <button className="link-button" type="button" onClick={() => setStage('list')}>
+              Usa un menù di esempio →
+            </button>
+          </div>
+          <div className="scan-hint">Suggerimento: una foto dritta e ben illuminata migliora il riconoscimento.</div>
+        </Card>
+      </div>
+    );
+  } else if (stage === 'list') {
+    body = (
+      <div className="page-grid">
+        <Card
+          title="Piatti riconosciuti"
+          subtitle={`${total} piatti rilevati · ${toReview} da rivedere con attenzione`}
+          action={<Button variant="ghost" onClick={() => setStage('upload')}>Ricarica</Button>}
+          className="span-3"
+        >
+          <div className="clean-table">
+            <div className="table-head scan-cols">
+              <span>Piatto</span><span>Categoria</span><span>Ingredienti rilevati</span><span>Confidenza</span>
+            </div>
+            {items.map((d) => (
+              <div className="table-row scan-cols" key={d.name}>
+                <strong>{d.name}</strong>
+                <span>{d.category}</span>
+                <span>{d.ingredients.slice(0, 3).join(', ')}…</span>
+                <Chip tone={confidenceTone(d.confidence)}>{d.confidence}%</Chip>
+              </div>
+            ))}
+          </div>
+          <div className="scan-cta">
+            <span>L'AI ha pre-compilato ogni scheda. Ora confermala o correggila, un piatto alla volta.</span>
+            <Button onClick={() => { setIdx(0); setStage('review'); }}>Inizia revisione guidata</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  } else if (stage === 'review') {
+    const progress = (idx / total) * 100;
+    body = (
+      <div className="page-grid">
+        <Card className="span-3 wizard-card">
+          <div className="wizard-progress">
+            <div className="wizard-progress-text">
+              <strong>Piatto {idx + 1} di {total}</strong>
+              <span>{confirmedCount} confermati · {skippedCount} saltati</span>
+            </div>
+            <div className="wizard-bar"><div className="wizard-bar-fill" style={{ width: `${progress}%` }} /></div>
+          </div>
+
+          <div className="wizard-body">
+            <div className="wizard-headline">
+              <Chip tone={confidenceTone(current.confidence)}>AI · {current.confidence}% di confidenza</Chip>
+              <input
+                className="wizard-title-input"
+                value={current.name}
+                onChange={(e) => patchCurrent({ name: e.target.value })}
+              />
+            </div>
+
+            <div className="wizard-fields">
+              <label className="wizard-field">
+                <span>Categoria <em className="ai-badge">AI suggerito</em></span>
+                <select value={current.category} onChange={(e) => patchCurrent({ category: e.target.value })}>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+
+              <label className="wizard-field">
+                <span>Metodo di cottura <em className="ai-badge">AI suggerito</em></span>
+                <select value={current.cooking} onChange={(e) => patchCurrent({ cooking: e.target.value })}>
+                  {cookingMethods.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+
+              <div className="wizard-field wide">
+                <span>Ingredienti principali <em className="ai-badge">AI suggerito · modifica liberamente</em></span>
+                <div className="chip-editor">
+                  {current.ingredients.map((ing) => (
+                    <span className="edit-chip" key={ing}>
+                      {ing}
+                      <button type="button" onClick={() => removeIngredient(ing)} aria-label={`Rimuovi ${ing}`}>×</button>
+                    </span>
+                  ))}
+                  <span className="chip-add">
+                    <input
+                      value={newIng}
+                      onChange={(e) => setNewIng(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addIngredient(); } }}
+                      placeholder="+ aggiungi"
+                    />
+                  </span>
+                </div>
+              </div>
+
+              <label className="wizard-field">
+                <span>Salsa / condimento <em className="ai-badge">AI suggerito</em></span>
+                <input value={current.sauce} onChange={(e) => patchCurrent({ sauce: e.target.value })} />
+              </label>
+
+              <label className="wizard-field">
+                <span>Note (allergeni, varianti…)</span>
+                <input value={current.note} onChange={(e) => patchCurrent({ note: e.target.value })} placeholder="opzionale" />
+              </label>
+
+              <div className="wizard-field wide">
+                <span>Profilo gustativo <em className="ai-badge">tocca per attivare o disattivare</em></span>
+                <div className="profile-chips">
+                  {profileVocab.map((tag) => (
+                    <button
+                      type="button"
+                      key={tag}
+                      className={`profile-chip ${current.profile.includes(tag) ? 'on' : ''}`}
+                      onClick={() => toggleProfile(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="wizard-actions">
+            <Button variant="ghost" onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}>← Indietro</Button>
+            <div className="wizard-actions-right">
+              <Button variant="ghost" onClick={skip}>Salta</Button>
+              <Button onClick={confirmAndNext}>{idx < total - 1 ? 'Conferma e prosegui →' : 'Conferma e termina'}</Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  } else {
+    body = (
+      <div className="page-grid">
+        <Card title="Menù digitalizzato" subtitle="Le schede confermate sono pronte per il motore abbinamenti." className="span-2">
+          <div className="done-summary">
+            <div className="done-stat"><strong>{confirmedCount}</strong><span>piatti confermati</span></div>
+            <div className="done-stat"><strong>{skippedCount}</strong><span>saltati</span></div>
+            <div className="done-stat"><strong>{total}</strong><span>totali rilevati</span></div>
+          </div>
+          <div className="clean-table" style={{ marginTop: 16 }}>
+            <div className="table-head three"><span>Piatto</span><span>Profilo gustativo</span><span>Stato</span></div>
+            {items.map((d, i) => (
+              <div className="table-row three" key={d.name}>
+                <strong>{d.name}</strong>
+                <span>{d.profile.join(' · ')}</span>
+                <Chip tone={statuses[i] === 'confirmed' ? 'green' : statuses[i] === 'skipped' ? 'default' : 'amber'}>
+                  {statuses[i] === 'confirmed' ? 'Confermato' : statuses[i] === 'skipped' ? 'Saltato' : 'In sospeso'}
+                </Chip>
+              </div>
+            ))}
+          </div>
+          <div className="card-actions">
+            <Button variant="ghost" onClick={() => { setIdx(0); setStage('review'); }}>Rivedi di nuovo</Button>
+            <Button variant="secondary" onClick={() => setActive('menu')}>Vai al Menù →</Button>
+          </div>
+        </Card>
+
+        <Card title="Come funziona" subtitle="Flusso semi-guidato in 4 fasi.">
+          <div className="status-list">
+            <div><span>1 · Acquisizione foto/PDF</span><Chip tone="green">OK</Chip></div>
+            <div><span>2 · Riconoscimento AI</span><Chip tone="green">OK</Chip></div>
+            <div><span>3 · Revisione per piatto</span><Chip tone="green">OK</Chip></div>
+            <div><span>4 · Invio al menù</span><Chip tone="blue">Pronto</Chip></div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {steps}
+      {body}
+    </>
+  );
+}
+
 function MenuView() {
   return (
     <div className="page-grid">
       <Card
         title="Menù food"
         action={<Button variant="secondary">Importa da testo/PDF</Button>}
-        
+
         className="span-3"
       >
         <div className="clean-table">
@@ -413,6 +746,7 @@ export default function App() {
   const view = useMemo(() => {
     switch (active) {
       case 'restaurant': return <RestaurantView />;
+      case 'scan': return <ScanView setActive={setActive} />;
       case 'menu': return <MenuView />;
       case 'wines': return <WinesView />;
       case 'pairings': return <PairingView />;
