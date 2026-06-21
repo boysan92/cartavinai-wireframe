@@ -1103,3 +1103,6 @@ input {
   .scan-cta { flex-direction: column; align-items: stretch; }
   .done-summary { grid-template-columns: 1fr; }
 }
+
+.wizard-topbar { margin-bottom: 14px; }
+.menu-flash { margin-bottom: 14px; }

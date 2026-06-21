@@ -3,7 +3,6 @@ import React, { useMemo, useState } from 'react';
 const views = [
   { id: 'home', label: 'Dashboard' },
   { id: 'restaurant', label: 'Locale' },
-  { id: 'scan', label: 'Scansiona menù' },
   { id: 'menu', label: 'Menù' },
   { id: 'wines', label: 'Carta vini' },
   { id: 'pairings', label: 'Abbinamenti' },
@@ -63,57 +62,58 @@ const glassPairings = [
 // Dati simulati del riconoscimento AI del menù scansionato
 const scanDishes = [
   {
-    name: 'Alici marinate',
+    name: 'Crostini misti',
     category: 'Antipasti',
-    confidence: 94,
-    ingredients: ['alici', 'limone', 'aglio', 'prezzemolo', 'olio EVO'],
-    sauce: 'marinatura agrumata',
-    cooking: 'Crudo / marinato',
-    profile: ['sapido', 'acido', 'agrumato']
+    confidence: 90,
+    ingredients: ['pane', 'fegatini', 'salsa verde', 'pomodoro', 'olio EVO'],
+    sauce: 'paté e salsa verde',
+    cooking: 'Tostato',
+    profile: ['sapido', 'rustico', 'saporito']
   },
   {
-    name: 'Passatelli asciutti con vongole',
+    name: 'Cappelletti in brodo',
     category: 'Primi',
-    confidence: 88,
-    ingredients: ['passatelli', 'vongole', 'aglio', 'prezzemolo', 'vino bianco'],
-    sauce: 'in bianco',
-    cooking: 'Saltato in padella',
-    profile: ['sapido', 'cremoso', 'iodato']
+    confidence: 86,
+    ingredients: ['cappelletti', 'brodo di carne', 'parmigiano'],
+    sauce: 'in brodo',
+    cooking: 'Bollito',
+    profile: ['delicato', 'umami', 'caldo']
   },
   {
-    name: 'Branzino al forno',
+    name: 'Coniglio in porchetta',
     category: 'Secondi',
-    confidence: 91,
-    ingredients: ['branzino', 'patate', 'rosmarino', 'olio EVO', 'limone'],
-    sauce: 'olio e erbe',
+    confidence: 79,
+    ingredients: ['coniglio', 'finocchietto', 'pancetta', 'aglio', 'vino bianco'],
+    sauce: 'fondo di cottura',
     cooking: 'Al forno',
-    profile: ['delicato', 'erbaceo']
+    profile: ['saporito', 'erbaceo', 'strutturato']
   },
   {
-    name: 'Tagliatelle al ragù',
-    category: 'Primi',
-    confidence: 78,
-    ingredients: ['tagliatelle', 'manzo', 'maiale', 'pomodoro', 'soffritto'],
-    sauce: 'ragù di carne',
-    cooking: 'Stufato',
-    profile: ['strutturato', 'umami', 'saporito']
+    name: 'Fritto misto dell’Adriatico',
+    category: 'Secondi',
+    confidence: 83,
+    ingredients: ['calamari', 'gamberi', 'alici', 'farina'],
+    sauce: 'limone',
+    cooking: 'Fritto',
+    profile: ['croccante', 'iodato', 'grasso']
   },
   {
-    name: 'Tenerina al cioccolato',
+    name: 'Zuppa inglese',
     category: 'Dolci',
-    confidence: 69,
-    ingredients: ['cioccolato fondente', 'burro', 'uova', 'zucchero'],
+    confidence: 71,
+    ingredients: ['savoiardi', 'crema', 'alchermes', 'cioccolato'],
     sauce: '—',
-    cooking: 'Al forno',
-    profile: ['dolce', 'amaro', 'intenso']
+    cooking: 'A crudo',
+    profile: ['dolce', 'aromatico', 'cremoso']
   }
 ];
 
 const categories = ['Antipasti', 'Primi', 'Secondi', 'Contorni', 'Dolci'];
-const cookingMethods = ['Crudo / marinato', 'Saltato in padella', 'Al forno', 'Fritto', 'Bollito', 'Stufato', 'Alla griglia'];
+const cookingMethods = ['Crudo / marinato', 'A crudo', 'Tostato', 'Saltato in padella', 'Al forno', 'Fritto', 'Bollito', 'Stufato', 'Alla griglia'];
 const profileVocab = [
   'sapido', 'grasso', 'acido', 'dolce', 'amaro', 'tannico', 'speziato', 'delicato',
-  'cremoso', 'umami', 'iodato', 'erbaceo', 'agrumato', 'intenso', 'strutturato', 'saporito', 'aromatico'
+  'cremoso', 'umami', 'iodato', 'erbaceo', 'agrumato', 'intenso', 'strutturato', 'saporito',
+  'aromatico', 'croccante', 'rustico', 'caldo'
 ];
 
 function confidenceTone(value) {
@@ -293,7 +293,8 @@ function RestaurantView() {
   );
 }
 
-function ScanView({ setActive }) {
+// Wizard di importazione menù, aperto dal pulsante "Importa da testo/PDF" nella vista Menù.
+function MenuImportWizard({ onCancel, onComplete }) {
   const [stage, setStage] = useState('upload'); // upload | list | review | done
   const [idx, setIdx] = useState(0);
   const [items, setItems] = useState(() =>
@@ -307,6 +308,15 @@ function ScanView({ setActive }) {
   const confirmedCount = statuses.filter((s) => s === 'confirmed').length;
   const skippedCount = statuses.filter((s) => s === 'skipped').length;
   const toReview = items.filter((d) => d.confidence < 80).length;
+
+  const confirmedDishes = items
+    .filter((d, i) => statuses[i] === 'confirmed')
+    .map((d) => ({
+      category: d.category,
+      name: d.name,
+      note: d.profile.slice(0, 3).join(', '),
+      selected: true
+    }));
 
   const stageOrder = ['upload', 'list', 'review', 'done'];
   const stageLabels = {
@@ -367,8 +377,9 @@ function ScanView({ setActive }) {
     body = (
       <div className="page-grid">
         <Card
-          title="Scansiona il menù"
+          title="Importa menù da testo/PDF"
           subtitle="Carica una foto o un PDF del menù cartaceo: l'AI riconosce i piatti e prepara una scheda da rivedere per ciascuno."
+          action={<Button variant="ghost" onClick={onCancel}>Annulla</Button>}
           className="span-3"
         >
           <div className="scan-drop">
@@ -378,6 +389,7 @@ function ScanView({ setActive }) {
             <div className="scan-drop-actions">
               <Button variant="secondary">Scatta foto</Button>
               <Button variant="secondary">Carica PDF</Button>
+              <Button variant="secondary">Incolla testo</Button>
             </div>
             <button className="link-button" type="button" onClick={() => setStage('list')}>
               Usa un menù di esempio →
@@ -515,7 +527,7 @@ function ScanView({ setActive }) {
   } else {
     body = (
       <div className="page-grid">
-        <Card title="Menù digitalizzato" subtitle="Le schede confermate sono pronte per il motore abbinamenti." className="span-2">
+        <Card title="Pronti per il menù" subtitle="Le schede confermate verranno aggiunte alla tabella del menù." className="span-2">
           <div className="done-summary">
             <div className="done-stat"><strong>{confirmedCount}</strong><span>piatti confermati</span></div>
             <div className="done-stat"><strong>{skippedCount}</strong><span>saltati</span></div>
@@ -535,7 +547,13 @@ function ScanView({ setActive }) {
           </div>
           <div className="card-actions">
             <Button variant="ghost" onClick={() => { setIdx(0); setStage('review'); }}>Rivedi di nuovo</Button>
-            <Button variant="secondary" onClick={() => setActive('menu')}>Vai al Menù →</Button>
+            <Button
+              variant="secondary"
+              onClick={() => onComplete(confirmedDishes)}
+              disabled={confirmedDishes.length === 0}
+            >
+              {confirmedDishes.length > 0 ? `Aggiungi ${confirmedDishes.length} al menù →` : 'Nessun piatto confermato'}
+            </Button>
           </div>
         </Card>
 
@@ -553,6 +571,9 @@ function ScanView({ setActive }) {
 
   return (
     <>
+      <div className="wizard-topbar">
+        <button className="link-button" type="button" onClick={onCancel}>← Torna al menù</button>
+      </div>
       {steps}
       {body}
     </>
@@ -560,17 +581,36 @@ function ScanView({ setActive }) {
 }
 
 function MenuView() {
+  const [rows, setRows] = useState(dishes);
+  const [importing, setImporting] = useState(false);
+  const [addedCount, setAddedCount] = useState(0);
+
+  function handleComplete(newDishes) {
+    if (newDishes.length) setRows((prev) => [...prev, ...newDishes]);
+    setAddedCount(newDishes.length);
+    setImporting(false);
+  }
+
+  if (importing) {
+    return <MenuImportWizard onCancel={() => setImporting(false)} onComplete={handleComplete} />;
+  }
+
   return (
     <div className="page-grid">
       <Card
         title="Menù food"
-        action={<Button variant="secondary">Importa da testo/PDF</Button>}
-
+        subtitle="Importa il menù cartaceo: l'AI riconosce i piatti e ti guida nella revisione di ognuno."
+        action={<Button variant="secondary" onClick={() => setImporting(true)}>Importa da testo/PDF</Button>}
         className="span-3"
       >
+        {addedCount > 0 && (
+          <div className="menu-flash">
+            <Chip tone="green">{addedCount} piatti aggiunti dall'importazione</Chip>
+          </div>
+        )}
         <div className="clean-table">
           <div className="table-head four"><span>Categoria</span><span>Piatto</span><span>Profilo</span><span>Stato</span></div>
-          {dishes.map((dish) => (
+          {rows.map((dish) => (
             <div className="table-row four" key={dish.name}>
               <span>{dish.category}</span>
               <strong>{dish.name}</strong>
@@ -712,8 +752,8 @@ function CustomerView() {
             <strong>Sangiovese di Romagna Superiore</strong>
             <span>Tagliatelle al ragù · Coniglio in porchetta · Tagliata</span>
             <p>Rosso territoriale, piacevole e versatile sui piatti più saporiti.</p>
-          </div>
           <div className="customer-note">Preferite un calice? Chiedete al personale: abbiamo consigli specifici per singolo piatto.</div>
+        </div>
         </div>
       </Card>
 
@@ -746,7 +786,6 @@ export default function App() {
   const view = useMemo(() => {
     switch (active) {
       case 'restaurant': return <RestaurantView />;
-      case 'scan': return <ScanView setActive={setActive} />;
       case 'menu': return <MenuView />;
       case 'wines': return <WinesView />;
       case 'pairings': return <PairingView />;
